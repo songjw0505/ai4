@@ -74,10 +74,10 @@ CONTENT_BY_LABEL: dict[str, dict[str, list[str]]] = {
     #   "images": ["https://.../jjampong1.jpg", "https://.../jjampong2.jpg"],
     #   "videos": ["https://youtu.be/XXXXXXXXXXX"]
     # },
-    labels[0] : {"texts" : ["중국식 냉면은 맛있어"], "images" : [https://www.unileverfoodsolutions.co.kr/dam/global-ufs/mcos/south-korea/calcmenu/recipes/kr-recipes/chinese/header/%EC%A4%91%EA%B5%AD%EB%83%89%EB%A9%B4-chinese-cold-noodles-header-1260x709px.jpg]},
+    labels[0] : {"texts" : ["중국식 냉면은 맛있어"], "images" : [https://static.wtable.co.kr/image-resize/production/service/recipe/1219/4x3/99632945-221c-4266-929d-5f6983046fe6.jpg]},
     labels[1] : {"texts" : ["짜장면은 맛있어"], "images" : [https://recipe1.ezmember.co.kr/cache/recipe/2021/10/26/8f82be9c22ec2f4f9ab25363cc611b141.jpg]},
      labels[2] : {"texts" : ["짬뽕은 맛있어"], "images" : [https://pds.joongang.co.kr//news/component/htmlphoto_mmdata/201802/24/46f9e8cd-ff32-440d-883e-e6d79ba15b3d.jpg]},
-    labels[3] : {"texts" : ["탕수육은 맛있어"], "images" : [https://blog.kakaocdn.net/dna/qnIz2/btqSdtiK7C4/AAAAAAAAAAAAAAAAAAAAAK_eDgChgNlbA3DwDL3Rhp3zyE68j5YgxkTq4Zz6RRN5/img.jpg?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&expires=1764514799&allow_ip=&allow_referer=&signature=IgQS1EsJodJN9xYMyJB6awE7Ae8%3D]},
+    labels[3] : {"texts" : ["탕수육은 맛있어"], "images" : [https://i.ytimg.com/vi/MtqZekQbE_0/maxresdefault.jpg]},
 
 
 

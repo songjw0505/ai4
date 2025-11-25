@@ -5,8 +5,7 @@ streamlit
 pandas
 numpy
 plotly
-fastai2
-fastbook
+fastai
 Pillow
 gdown
 opencv-python-headless

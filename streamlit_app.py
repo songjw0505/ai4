@@ -10,7 +10,7 @@ import gdown
 # ======================
 # 페이지/스타일
 # ======================
-st.set_page_config(page_title="Fastai 이미지 분류기", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="축구팀 이미지 분류기", page_icon="⚽", layout="wide")
 st.markdown("""
 <style>
 h1 { color:#1E88E5; text-align:center; font-weight:800; letter-spacing:-0.5px; }
@@ -32,7 +32,7 @@ h1 { color:#1E88E5; text-align:center; font-weight:800; letter-spacing:-0.5px; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("이미지 분류기 (Fastai) — 확률 막대 + 라벨별 고정 콘텐츠")
+st.title("⚽ 축구팀 이미지 분류기")
 
 # ======================
 # 세션 상태
@@ -43,44 +43,58 @@ if "last_prediction" not in st.session_state:
     st.session_state.last_prediction = None
 
 # ======================
-# 모델 로드
+# 모델 로드 (Drive 또는 GitHub Raw URL 사용 가능)
 # ======================
-FILE_ID = st.secrets.get("GDRIVE_FILE_ID", "1cdbz-r9kShjyDwG8fujdaDUpwc_RObq7")
-MODEL_PATH = st.secrets.get("MODEL_PATH", "model.pkl")
+MODEL_URL = st.secrets.get("MODEL_URL", "")  # GitHub Raw URL 권장
+MODEL_PATH = "soccer_model.pkl"
 
 @st.cache_resource
-def load_model_from_drive(file_id: str, output_path: str):
+def load_model(url: str, output_path: str):
     if not os.path.exists(output_path):
-        url = f"https://drive.google.com/uc?id={file_id}"
         gdown.download(url, output_path, quiet=False)
     return load_learner(output_path, cpu=True)
 
 with st.spinner("🤖 모델 로드 중..."):
-    learner = load_model_from_drive(FILE_ID, MODEL_PATH)
+    learner = load_model(MODEL_URL, MODEL_PATH)
 st.success("✅ 모델 로드 완료")
 
 labels = [str(x) for x in learner.dls.vocab]
-st.write(f"**분류 가능한 항목:** `{', '.join(labels)}`")
+st.write(f"**분류 가능한 축구팀:** `{', '.join(labels)}`")
 st.markdown("---")
 
 # ======================
-# 라벨 이름 매핑: 여기를 채우세요!
-# 각 라벨당 최대 3개씩 표시됩니다.
+# 라벨별 콘텐츠
 # ======================
 CONTENT_BY_LABEL: dict[str, dict[str, list[str]]] = {
-    # 예)
-    # "짬뽕": {
-    #   "texts": ["짬뽕의 특징과 유래", "국물 맛 포인트", "지역별 스타일 차이"],
-    #   "images": ["https://.../jjampong1.jpg", "https://.../jjampong2.jpg"],
-    #   "videos": ["https://youtu.be/XXXXXXXXXXX"]
-    # },
-    labels[0] : {"texts" : ["중국식 냉면은 맛있어"], "images" : ["https://static.wtable.co.kr/image-resize/production/service/recipe/1219/4x3/99632945-221c-4266-929d-5f6983046fe6.jpg"]},
-    labels[1] : {"texts" : ["짜장면은 맛있어"], "images" : ["https://recipe1.ezmember.co.kr/cache/recipe/2021/10/26/8f82be9c22ec2f4f9ab25363cc611b141.jpg"]},
-    labels[2] : {"texts" : ["짬뽕은 맛있어"], "images" : ["https://pds.joongang.co.kr//news/component/htmlphoto_mmdata/201802/24/46f9e8cd-ff32-440d-883e-e6d79ba15b3d.jpg"]},
-    labels[3] : {"texts" : ["탕수육은 맛있어"], "images" : ["https://i.ytimg.com/vi/MtqZekQbE_0/maxresdefault.jpg"]},
+    "FC Barcelona": {
+        "texts": ["스페인 라리가 소속", "홈 구장: 캄프 누", "대표 선수: 리오넬 메시 등"],
+        "images": ["https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg"],
+        "videos": []
+    },
+    "Real Madrid": {
+        "texts": ["스페인 라리가 소속", "홈 구장: 산티아고 베르나베우", "대표 선수: 크리스티아누 호날두 등"],
+        "images": ["https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg"],
+        "videos": []
+    },
+    "Manchester United": {
+        "texts": ["잉글리시 프리미어리그 소속", "홈 구장: 올드 트래포드", "대표 선수: 브루노 페르난데스 등"],
+        "images": ["https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg"],
+        "videos": []
+    },
+    "Liverpool FC": {
+        "texts": ["잉글리시 프리미어리그 소속", "홈 구장: 안필드", "대표 선수: 모하메드 살라 등"],
+        "images": ["https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg"],
+        "videos": []
+    },
+    "Chelsea FC": {
+        "texts": ["잉글리시 프리미어리그 소속", "홈 구장: 스탬포드 브리지", "대표 선수: 은골로 캉테 등"],
+        "images": ["https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg"],
+        "videos": []
+    }
 }
+
 # ======================
-# 유틸
+# 유틸 함수
 # ======================
 def load_pil_from_bytes(b: bytes) -> Image.Image:
     pil = Image.open(BytesIO(b))
@@ -88,23 +102,10 @@ def load_pil_from_bytes(b: bytes) -> Image.Image:
     if pil.mode != "RGB": pil = pil.convert("RGB")
     return pil
 
-def yt_id_from_url(url: str) -> str | None:
-    if not url: return None
-    pats = [r"(?:v=|/)([0-9A-Za-z_-]{11})(?:\?|&|/|$)", r"youtu\.be/([0-9A-Za-z_-]{11})"]
-    for p in pats:
-        m = re.search(p, url)
-        if m: return m.group(1)
-    return None
-
-def yt_thumb(url: str) -> str | None:
-    vid = yt_id_from_url(url)
-    return f"https://img.youtube.com/vi/{vid}/hqdefault.jpg" if vid else None
-
 def pick_top3(lst):
     return [x for x in lst if isinstance(x, str) and x.strip()][:3]
 
 def get_content_for_label(label: str):
-    """라벨명으로 콘텐츠 반환 (texts, images, videos). 없으면 빈 리스트."""
     cfg = CONTENT_BY_LABEL.get(label, {})
     return (
         pick_top3(cfg.get("texts", [])),
@@ -113,21 +114,18 @@ def get_content_for_label(label: str):
     )
 
 # ======================
-# 입력(카메라/업로드)
+# 입력: 카메라 / 파일 업로드
 # ======================
-tab_cam, tab_file = st.tabs(["📷 카메라로 촬영", "📁 파일 업로드"])
+tab_cam, tab_file = st.tabs(["📷 카메라", "📁 업로드"])
 new_bytes = None
 
 with tab_cam:
     cam = st.camera_input("카메라 스냅샷", label_visibility="collapsed")
-    if cam is not None:
-        new_bytes = cam.getvalue()
+    if cam: new_bytes = cam.getvalue()
 
 with tab_file:
-    f = st.file_uploader("이미지를 업로드하세요 (jpg, png, jpeg, webp, tiff)",
-                         type=["jpg","png","jpeg","webp","tiff"])
-    if f is not None:
-        new_bytes = f.getvalue()
+    f = st.file_uploader("이미지 업로드 (jpg, png, jpeg, webp, tiff)", type=["jpg","png","jpeg","webp","tiff"])
+    if f: new_bytes = f.getvalue()
 
 if new_bytes:
     st.session_state.img_bytes = new_bytes
@@ -136,9 +134,9 @@ if new_bytes:
 # 예측 & 레이아웃
 # ======================
 if st.session_state.img_bytes:
-    top_l, top_r = st.columns([1, 1], vertical_alignment="center")
-
+    top_l, top_r = st.columns([1,1], vertical_alignment="center")
     pil_img = load_pil_from_bytes(st.session_state.img_bytes)
+
     with top_l:
         st.image(pil_img, caption="입력 이미지", use_container_width=True)
 
@@ -147,98 +145,60 @@ if st.session_state.img_bytes:
         st.session_state.last_prediction = str(pred)
 
     with top_r:
-        st.markdown(
-            f"""
-            <div class="prediction-box">
-                <span style="font-size:1.0rem;color:#555;">예측 결과:</span>
-                <h2>{st.session_state.last_prediction}</h2>
-                <div class="helper">오른쪽 패널에서 예측 라벨의 콘텐츠가 표시됩니다.</div>
-            </div>
-            """, unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        <div class="prediction-box">
+            <span style="font-size:1rem;color:#555;">예측 결과:</span>
+            <h2>{st.session_state.last_prediction}</h2>
+            <div class="helper">오른쪽 패널에서 라벨별 정보가 표시됩니다.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     left, right = st.columns([1,1], vertical_alignment="top")
 
     # 왼쪽: 확률 막대
     with left:
         st.subheader("상세 예측 확률")
-        prob_list = sorted(
-            [(labels[i], float(probs[i])) for i in range(len(labels))],
-            key=lambda x: x[1], reverse=True
-        )
+        prob_list = sorted([(labels[i], float(probs[i])) for i in range(len(labels))],
+                           key=lambda x: x[1], reverse=True)
         for lbl, p in prob_list:
             pct = p * 100
             hi = "highlight" if lbl == st.session_state.last_prediction else ""
-            st.markdown(
-                f"""
-                <div class="prob-card">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <strong>{lbl}</strong><span>{pct:.2f}%</span>
-                  </div>
-                  <div class="prob-bar-bg">
-                    <div class="prob-bar-fg {hi}" style="width:{pct:.4f}%;"></div>
-                  </div>
-                </div>
-                """, unsafe_allow_html=True
-            )
+            st.markdown(f"""
+            <div class="prob-card">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <strong>{lbl}</strong><span>{pct:.2f}%</span>
+              </div>
+              <div class="prob-bar-bg">
+                <div class="prob-bar-fg {hi}" style="width:{pct:.4f}%;"></div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # 오른쪽: 정보 패널 (예측 라벨 기본, 다른 라벨로 바꿔보기 가능)
+    # 오른쪽: 라벨별 콘텐츠
     with right:
-        st.subheader("라벨별 고정 콘텐츠")
+        st.subheader("라벨별 정보")
         default_idx = labels.index(st.session_state.last_prediction) if st.session_state.last_prediction in labels else 0
-        info_label = st.selectbox("표시할 라벨 선택", options=labels, index=default_idx)
+        info_label = st.selectbox("표시할 팀 선택", labels, index=default_idx)
 
         texts, images, videos = get_content_for_label(info_label)
 
         if not any([texts, images, videos]):
-            st.info(f"라벨 `{info_label}`에 대한 콘텐츠가 아직 없습니다. 코드의 CONTENT_BY_LABEL에 추가하세요.")
+            st.info(f"라벨 `{info_label}`에 대한 정보가 없습니다. 코드에서 추가하세요.")
         else:
-            # 텍스트
             if texts:
                 st.markdown('<div class="info-grid">', unsafe_allow_html=True)
                 for t in texts:
-                    st.markdown(f"""
-                    <div class="card" style="grid-column:span 12;">
-                      <h4>텍스트</h4>
-                      <div>{t}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f'<div class="card" style="grid-column:span 12;"><h4>설명</h4>{t}</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-
-            # 이미지(최대 3, 3열)
             if images:
                 st.markdown('<div class="info-grid">', unsafe_allow_html=True)
                 for url in images[:3]:
-                    st.markdown(f"""
-                    <div class="card" style="grid-column:span 4;">
-                      <h4>이미지</h4>
-                      <img src="{url}" class="thumb" />
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f'<div class="card" style="grid-column:span 4;"><h4>이미지</h4><img src="{url}" class="thumb"/></div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-
-            # 동영상(유튜브 썸네일)
             if videos:
                 st.markdown('<div class="info-grid">', unsafe_allow_html=True)
                 for v in videos[:3]:
-                    thumb = yt_thumb(v)
-                    if thumb:
-                        st.markdown(f"""
-                        <div class="card" style="grid-column:span 6;">
-                          <h4>동영상</h4>
-                          <a href="{v}" target="_blank" class="thumb-wrap">
-                            <img src="{thumb}" class="thumb"/>
-                            <div class="play"></div>
-                          </a>
-                          <div class="helper">{v}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class="card" style="grid-column:span 6;">
-                          <h4>동영상</h4>
-                          <a href="{v}" target="_blank">{v}</a>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    st.markdown(f'<div class="card" style="grid-column:span 6;"><h4>동영상</h4><a href="{v}" target="_blank">{v}</a></div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("카메라로 촬영하거나 파일을 업로드하면 분석 결과와 라벨별 콘텐츠가 표시됩니다.")
+    st.info("카메라 촬영 또는 파일 업로드 후 분석 결과와 팀 정보를 확인할 수 있습니다.")
